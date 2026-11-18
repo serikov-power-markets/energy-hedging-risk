@@ -23,6 +23,7 @@ def trading_dates(start: str = "2020-01-01", end: str = "2025-12-01") -> list[pd
 
 def main() -> None:
     prices = data.smard_series("price")
+    fuels = (data.ttf_daily(), data.eua_daily())
     cache = pickle.loads(OUT.read_bytes()) if OUT.exists() else {}
     prev = None
     for t in trading_dates():
@@ -30,7 +31,7 @@ def main() -> None:
             prev = cache[t].params
             continue
         t0 = time.time()
-        cache[t] = curves.build_curve(prices, t, start=prev)
+        cache[t] = curves.build_curve(prices, t, start=prev, fuels=fuels)
         prev = cache[t].params
         OUT.write_bytes(pickle.dumps(cache))
         print(t.date(), f"{time.time() - t0:.0f}s", flush=True)

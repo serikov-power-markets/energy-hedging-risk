@@ -56,7 +56,8 @@ def rolling_var(dx: pd.DataFrame, pos: np.ndarray, alpha: float = 0.99, window: 
             z = stats.norm.ppf(alpha)
             v, e = z * sd, sd * stats.norm.pdf(z) / (1 - alpha)
         elif method == "fhs":
-            vol_hist = np.sqrt(np.einsum("ijj->ij", cov[t - window - 1:t - 1]))
+            prev = np.maximum(np.arange(t - window, t) - 1, 0)   # vol forecast for each past day
+            vol_hist = np.sqrt(np.einsum("ijj->ij", cov[prev]))
             vol_now = np.sqrt(np.diag(cov[t - 1]))
             scaled = hist / np.where(vol_hist > 0, vol_hist, 1) * vol_now
             v, e = var_es(scaled @ pos, alpha)

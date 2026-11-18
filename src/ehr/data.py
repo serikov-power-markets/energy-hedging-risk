@@ -114,8 +114,8 @@ def ttf_daily() -> pd.Series:
     return s
 
 
-def eua_daily(years: range = range(2020, 2026)) -> pd.Series:
-    """EEX primary auction clearing price of EU allowances, EUR/t, by auction date (xlsx files, 2020 on)."""
+def eua_daily(years: range = range(2018, 2026)) -> pd.Series:
+    """EEX primary auction clearing price of EU allowances, EUR/t, by auction date."""
     path = RAW / "fuels" / "eex_eua_auctions_2012_2025.zip"
     if not path.exists():
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -123,15 +123,19 @@ def eua_daily(years: range = range(2020, 2026)) -> pd.Series:
     z = zipfile.ZipFile(path)
     frames = []
     for year in years:
-        name = next(n for n in z.namelist() if n.endswith(f"-{year}-data.xlsx"))
+        name = next(n for n in z.namelist() if n.endswith((f"-{year}-data.xlsx", f"-{year}-data.xls")))
         raw = pd.read_excel(io.BytesIO(z.read(name)), header=None)
         hdr = next(i for i, v in enumerate(raw.iloc[:, 1]) if str(v).strip() == "Date")
         cols = [str(c).strip() for c in raw.iloc[hdr]]
         pc = next(i for i, c in enumerate(cols) if c.startswith("Auction Price"))
-        sc = cols.index("Status")
-        df = raw.iloc[hdr + 1:, [1, pc, sc]]
-        df.columns = ["date", "price", "status"]
-        df = df[[str(v).strip().lower() == "successful" for v in df["status"]]]
+        if "Status" in cols:                     # 2020 on: cancelled auctions flagged
+            df = raw.iloc[hdr + 1:, [1, pc, cols.index("Status")]]
+            df.columns = ["date", "price", "status"]
+            df = df[[str(v).strip().lower() == "successful" for v in df["status"]]]
+        else:                                    # older files: no status column
+            df = raw.iloc[hdr + 1:, [1, pc]]
+            df.columns = ["date", "price"]
+        df = df[pd.to_numeric(df["price"], errors="coerce").notna()]
         frames.append(df[["date", "price"]])
     out = pd.concat(frames)
     s = pd.Series(out["price"].astype(float).to_numpy(), index=pd.to_datetime(out["date"]).dt.normalize())

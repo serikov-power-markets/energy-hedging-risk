@@ -1,0 +1,34 @@
+2021 spot cost 103.0  pnl -32.0 m
+2021 cal_once cost 41.3  pnl -1.1 m
+2021 ladder cost 33.0  pnl 3.1 m
+2021 ladder_base_only cost 35.6  pnl 1.8 m
+2021 ladder_shaped cost 40.5  pnl -0.7 m
+2022 spot cost 239.2  pnl -41.9 m
+2022 cal_once cost 150.9  pnl 2.1 m
+2022 ladder cost 80.4  pnl 37.3 m
+2022 ladder_base_only cost 83.8  pnl 35.6 m
+2022 ladder_shaped cost 114.3  pnl 20.3 m
+2023 spot cost 99.0  pnl 99.1 m
+2023 cal_once cost 296.9  pnl 0.6 m
+2023 ladder cost 234.8  pnl 31.5 m
+2023 ladder_base_only cost 230.4  pnl 33.7 m
+2023 ladder_shaped cost 214.6  pnl 41.6 m
+2024 spot cost 81.1  pnl 13.6 m
+2024 cal_once cost 108.4  pnl -0.0 m
+2024 ladder cost 110.4  pnl -1.0 m
+2024 ladder_base_only cost 109.6  pnl -0.6 m
+2024 ladder_shaped cost 103.0  pnl 2.7 m
+2025 spot cost 91.3  pnl -1.0 m
+2025 cal_once cost 90.9  pnl -0.8 m
+2025 ladder cost 87.3  pnl 1.0 m
+2025 ladder_base_only cost 86.0  pnl 1.6 m
+2025 ladder_shaped cost 87.2  pnl 1.0 m
+                  mean_pnl_eur_m  ...  mean_cost_eur_mwh
+strategy                          ...                   
+cal_once                    0.16  ...             137.66
+ladder                     14.35  ...             109.18
+ladder_base_only           14.41  ...             109.06
+ladder_shaped              12.97  ...             111.94
+spot                        7.56  ...             122.71
+
+[5 rows x 4 columns]

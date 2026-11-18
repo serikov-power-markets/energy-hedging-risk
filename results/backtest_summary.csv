@@ -1,0 +1,6 @@
+strategy,mean_pnl_eur_m,std_pnl_eur_m,worst_pnl_eur_m,mean_cost_eur_mwh
+cal_once,0.159,1.284,-1.055,137.658
+ladder,14.352,18.456,-1.034,109.184
+ladder_base_only,14.412,18.512,-0.598,109.060
+ladder_shaped,12.974,18.080,-0.668,111.935
+spot,7.563,55.907,-41.895,122.709
