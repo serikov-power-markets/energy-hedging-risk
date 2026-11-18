@@ -1,0 +1,10 @@
+,value
+fuel_cost_eur_mwh,85.746
+base_fwd,81.399
+peak_fwd,85.324
+base_intrinsic_eur_m,14.129
+base_option_eur_m,51.360
+peak_intrinsic_eur_m,12.057
+peak_option_eur_m,23.033
+hourly_intrinsic_eur_m,37.145
+base_option_eur_per_kw_yr,128.399

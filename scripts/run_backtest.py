@@ -47,6 +47,9 @@ def main() -> None:
     summary = pd.DataFrame({
         "mean_pnl_eur_m": piv.mean(), "std_pnl_eur_m": piv.std(), "worst_pnl_eur_m": piv.min(),
         "mean_cost_eur_mwh": df.pivot(index="year", columns="strategy", values="cost_eur_mwh").mean(),
+        # tariff stability under cost pass-through: largest year-on-year jump of the unit cost
+        "max_yoy_cost_jump_eur_mwh": df.pivot(index="year", columns="strategy", values="cost_eur_mwh")
+        .diff().abs().max(),
     })
     summary.to_csv(out / "backtest_summary.csv", float_format="%.3f")
     print(summary.round(2))

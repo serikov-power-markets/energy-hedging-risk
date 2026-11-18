@@ -23,12 +23,12 @@
 2025 ladder cost 87.3  pnl 1.0 m
 2025 ladder_base_only cost 86.0  pnl 1.6 m
 2025 ladder_shaped cost 87.2  pnl 1.0 m
-                  mean_pnl_eur_m  ...  mean_cost_eur_mwh
-strategy                          ...                   
-cal_once                    0.16  ...             137.66
-ladder                     14.35  ...             109.18
-ladder_base_only           14.41  ...             109.06
-ladder_shaped              12.97  ...             111.94
-spot                        7.56  ...             122.71
+                  mean_pnl_eur_m  ...  max_yoy_cost_jump_eur_mwh
+strategy                          ...                           
+cal_once                    0.16  ...                     188.42
+ladder                     14.35  ...                     154.39
+ladder_base_only           14.41  ...                     146.57
+ladder_shaped              12.97  ...                     111.65
+spot                        7.56  ...                     140.12
 
-[5 rows x 4 columns]
+[5 rows x 5 columns]
