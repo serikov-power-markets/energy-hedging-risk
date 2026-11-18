@@ -53,11 +53,13 @@ def fit_seasonality(logp: pd.Series) -> np.ndarray:
     resid = rel - m.reindex(rel.index.month).to_numpy()
     w = resid.groupby(resid.index.dayofweek).median().reindex(range(7)).fillna(0.0)
     beta = np.concatenate([(m - m.iloc[0]).to_numpy()[1:], (w - w.iloc[0]).to_numpy()[1:]])
-    return beta - (seasonal_design(pd.date_range("2021-01-01", "2021-12-31")) @ beta).mean()
+    offset = (seasonal_design(pd.date_range("2021-01-01", "2021-12-31")) @ beta).mean()
+    return np.append(beta, offset)   # last element: offset that centres the yearly mean on zero
 
 
 def seasonal_value(beta: np.ndarray, dates: pd.DatetimeIndex) -> np.ndarray:
-    return seasonal_design(dates) @ beta
+    """Seasonal log component; beta holds 17 dummy coefficients and the centring offset."""
+    return seasonal_design(dates) @ beta[:-1] - beta[-1]
 
 
 # ---------------------------------------------------------------- two-factor Kalman filter

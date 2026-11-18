@@ -3,7 +3,7 @@ name = "ehr"
 version = "0.1.0"
 description = "Energy supplier hedging, structured product valuation and portfolio risk on open German market data"
 requires-python = ">=3.11"
-dependencies = ["pandas>=2.2", "numpy>=2.0", "scipy>=1.13", "statsmodels>=0.14", "duckdb>=1.1",
+dependencies = ["pandas>=2.2,<3", "numpy>=2.0", "scipy>=1.13", "statsmodels>=0.14", "duckdb>=1.1",
                 "pyarrow>=15", "matplotlib>=3.9", "openpyxl>=3.1", "requests>=2.31", "demandlib>=0.2"]
 
 [project.optional-dependencies]
