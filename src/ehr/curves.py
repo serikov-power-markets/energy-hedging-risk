@@ -218,3 +218,35 @@ def build_curve(prices: pd.Series, asof: pd.Timestamp, window_years: float = 3.0
     xi = states[-1, 1] + params.mu * gap
     shape = shape_factors(hist[hist.index >= hist.index[-1] - pd.Timedelta(days=730)])
     return CurveModel(asof=asof, params=params, beta=beta, state=np.array([chi, xi]), shape=shape)
+
+
+def daily_forward_series(prices: pd.Series, cache: dict[pd.Timestamp, CurveModel],
+                         start: str = "2020-02-01", end: str = "2025-12-31") -> pd.DataFrame:
+    """Modelled front-month and next-calendar-year baseload forwards on every business day.
+
+    For each month the parameters, seasonality and window of that month's cached fit are kept and
+    the Kalman filter is run over the window up to each day, so day t only uses spot prices up to
+    t-1. Base forwards are the mean of the daily forwards (hourly shape factors average one per day).
+    """
+    from .data import daily_base
+    base = daily_base(prices)
+    logp = np.log(base.clip(lower=FLOOR))
+    keys = sorted(cache)
+    rows = []
+    for d in pd.bdate_range(start, end):
+        k = max((x for x in keys if x <= d), default=None)
+        if k is None:
+            continue
+        m = cache[k]
+        hist = logp[(logp.index < d) & (logp.index >= d - pd.Timedelta(days=int(365 * 3)))]
+        y = hist.to_numpy() - seasonal_value(m.beta, hist.index)
+        _, st, _ = kalman(y, m.params)
+        gap = (d - hist.index[-1]).days
+        cm = CurveModel(asof=d, params=m.params, beta=m.beta,
+                        state=np.array([st[-1, 0] * np.exp(-m.params.kappa * gap),
+                                        st[-1, 1]]), shape=m.shape)
+        m1 = d + pd.offsets.MonthBegin(1)
+        cal = pd.date_range(f"{d.year + 1}-01-01", f"{d.year + 1}-12-31")
+        rows.append((d, float(cm.daily_forward(pd.date_range(m1, m1 + pd.offsets.MonthEnd(0))).mean()),
+                     float(cm.daily_forward(cal).mean())))
+    return pd.DataFrame(rows, columns=["date", "power_m1", "power_cal1"]).set_index("date")
