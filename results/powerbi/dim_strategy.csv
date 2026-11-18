@@ -1,0 +1,6 @@
+strategy,description
+spot,"no hedge, all volume at day-ahead"
+cal_once,Cal base and peak bought on the sales date
+ladder,12 monthly tranches of Cal base and peak in the year before
+ladder_base_only,12 tranches of Cal base only (no shape hedge)
+ladder_shaped,80% Cal ladder plus month products one month ahead
