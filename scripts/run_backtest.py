@@ -35,7 +35,7 @@ def main() -> None:
         for name in hedging.STRATEGIES:
             trades = hedging.strategy(name, y, exp)
             fwd = hedging.trade_prices(trades, curves)
-            r = hedging.settle(trades, fwd, act, spot, price)
+            r = hedging.settle(trades, fwd, act, spot, price, expected=exp)
             rows.append({"year": y, "strategy": name, **r})
             print(y, name, f"cost {r['cost_eur_mwh']:.1f}  pnl {r['pnl_eur_m']:.1f} m", flush=True)
     df = pd.DataFrame(rows)
@@ -53,6 +53,11 @@ def main() -> None:
     })
     summary.to_csv(out / "backtest_summary.csv", float_format="%.3f")
     print(summary.round(2))
+    comp = ["pnl_level_eur_m", "pnl_shape_eur_m", "pnl_volume_eur_m", "pnl_hedge_eur_m", "pnl_eur_m"]
+    explain = df.set_index(["strategy", "year"])[comp]
+    gap = (explain[comp[:-1]].sum(axis=1) - explain["pnl_eur_m"]).abs().max()
+    print(f"P&L explain: largest unexplained residual {gap:.2e} EUR m")
+    explain.to_csv(out / "pnl_explain.csv", float_format="%.3f")
 
     fig, ax = plt.subplots(figsize=(8, 4))
     piv.plot.bar(ax=ax, width=0.8)

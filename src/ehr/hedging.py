@@ -115,7 +115,7 @@ def trade_prices(trades: list[Trade], curves: dict[pd.Timestamp, CurveModel]) ->
 
 
 def settle(trades: list[Trade], prices_fwd: np.ndarray, actual: pd.Series, spot: pd.Series,
-           sales_price: float) -> dict:
+           sales_price: float, expected: pd.Series | None = None) -> dict:
     """Cost and P&L of one delivery year.
 
     cost = sum over trades (MW x hours x forward) + sum over hours (actual - hedge) x spot
@@ -139,7 +139,20 @@ def settle(trades: list[Trade], prices_fwd: np.ndarray, actual: pd.Series, spot:
     open_cost = float(((actual - pos) * s).sum())
     vol = float(actual.sum())
     cost = hedge_cost + open_cost
+    explain = {}
+    if expected is not None:
+        # P&L explain: P&L = sum (P_s - S) E  +  sum (P_s - S)(A - E)  +  sum H (S - F)
+        # and sum (P_s - S) E = (P_s - base spot) sum E  -  (load-weighted spot - base spot) sum E
+        e = expected.reindex(hours).fillna(0.0)
+        ew = float((e * s).sum() / e.sum())
+        explain = {
+            "pnl_level_eur_m": (sales_price - float(s.mean())) * float(e.sum()) / 1e6,
+            "pnl_shape_eur_m": -(ew - float(s.mean())) * float(e.sum()) / 1e6,
+            "pnl_volume_eur_m": float(((sales_price - s) * (actual - e)).sum()) / 1e6,
+            "pnl_hedge_eur_m": hedge_mtm / 1e6,
+        }
     return {
+        **explain,
         "volume_mwh": vol,
         "cost_eur_mwh": cost / vol,
         "spot_cost_eur_mwh": float((actual * s).sum()) / vol,   # load-weighted spot (no hedge)

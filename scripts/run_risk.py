@@ -10,7 +10,7 @@ Books (one year of delivery, constant positions):
 - power: long 10 MW Cal baseload (87,600 MWh)
 - spark: long 10 MW Cal baseload power, short the gas and allowances a 55% efficient CCGT needs
   (heat rate 1.82, 0.365 t CO2 per MWh electric): a clean spark spread position
-Output: results/risk_backtest.csv, results/risk_daily_<book>_<method>.csv, figures/var_<book>.png
+Output: results/risk_backtest.csv, results/risk_stress.csv (stressed VaR on 2022), results/risk_daily_<book>_<method>.csv, figures/var_<book>.png
 """
 from __future__ import annotations
 
@@ -81,6 +81,18 @@ def main() -> None:
             "mean_var", "traffic_light"]
     with pd.option_context("display.width", 200):
         print(df[cols].round(3).to_string(index=False))
+    # stressed VaR (Basel-style): historical simulation on the 2022 crisis year for today's books,
+    # against the VaR of the latest 250 days
+    stress = []
+    for book, pos in BOOKS.items():
+        for label, window in {"2022 crisis": dx.loc["2022"], "last 250 days": dx.iloc[-250:]}.items():
+            v, e = risk.var_es(window.to_numpy() @ pos, 0.99)
+            worst = float((window.to_numpy() @ pos).min())
+            stress.append({"book": book, "window": label, "var99_eur_m": v / 1e6, "es99_eur_m": e / 1e6,
+                           "worst_day_eur_m": worst / 1e6})
+    stress = pd.DataFrame(stress)
+    stress.to_csv(res_dir / "risk_stress.csv", index=False, float_format="%.3f")
+    print(stress.round(2).to_string(index=False))
     corr = dx.loc["2021":].corr().round(2)
     corr.to_csv(res_dir / "factor_correlation.csv")
     print(corr)

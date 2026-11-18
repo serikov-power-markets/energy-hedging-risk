@@ -15,9 +15,9 @@ comparisons and backtests are the point.
 |---|---|---|
 | Forward curves | Two-factor spot model (Schwartz-Smith, Kalman filter) anchored to fuel cost, hourly price forward curve (HPFC), Cal/Quarter/Month base and peak products | `src/ehr/curves.py` |
 | Customer book | BDEW standard load profiles H0 and G0, weather-driven volume from a load-temperature regression | `src/ehr/book.py` |
-| Hedging programme | Five procurement strategies, hourly settlement of hedges and open position, P&L, 2021-2025 backtest | `src/ehr/hedging.py`, `scripts/run_backtest.py` |
+| Hedging programme | Five procurement strategies, hourly settlement of hedges and open position, P&L and P&L explain, 2021-2025 backtest | `src/ehr/hedging.py`, `scripts/run_backtest.py` |
 | Structured products | Tolling (strip of Kirk spread options), gas swing (trinomial tree), solar pay-as-produced PPA, guarantees of origin | `src/ehr/products.py`, `src/ehr/goo.py`, `scripts/run_products.py` |
-| Market risk | VaR and ES by historical, EWMA, filtered historical and Monte Carlo t simulation; Kupiec, Christoffersen and Acerbi-Szekely backtests | `src/ehr/risk.py`, `scripts/run_risk.py` |
+| Market risk | VaR and ES by historical, EWMA, filtered historical and Monte Carlo t simulation; Kupiec, Christoffersen and Acerbi-Szekely backtests; stressed VaR | `src/ehr/risk.py`, `scripts/run_risk.py` |
 | Data and reporting | Input data checks and anomaly detection, DuckDB position store, SQL KPIs and position reconciliation, Excel report, Power BI tables | `src/ehr/quality.py`, `sql/`, `scripts/run_reporting.py` |
 
 ## Data
@@ -97,6 +97,13 @@ anomaly (t 6.2) and +0.59% per cooling degree day (t 8.6), from national grid lo
 - The ladders shift the 2022 crisis into the 2023 cost (215-235 EUR/MWh), as many municipal
   utilities' tariffs did.
 
+**P&L explain** (`results/pnl_explain.csv`): each year's P&L splits exactly (residual below
+1e-13 EUR m) into a price level effect (sales price against the base spot average, on expected
+volume), a shape effect (load-weighted against base spot), a weather volume effect and the hedge
+result. The shape effect costs 0.9-3.1 EUR m every year because H0 and G0 consume more in expensive
+hours; the weather volume effect stays below 0.5 EUR m; level and hedge dominate and offset each
+other when the hedge is placed on the sales date (2022: level -40.2, hedge +44.0 EUR m).
+
 ### 2. Structured products, valued 1 December 2025 for 2026
 
 Inputs: Cal-26 base 81.4, peak 85.3 EUR/MWh (modelled), TTF 28.8 EUR/MWh, EUA 83.0 EUR/t, TTF vol
@@ -141,6 +148,11 @@ against it (clean spark spread). 250-day window.
   test: it adapts the scale like EWMA and keeps the empirical fat tails and co-movements.
 - **Normal and t models fail on the spread book.** A spread's loss distribution is driven by joint
   extremes of gas and power that an elliptical model with one covariance misses.
+
+**Stressed VaR** (historical simulation on 2022 against the latest 250 days, `results/risk_stress.csv`):
+99% one-day VaR of the power book 4.27 against 0.47 EUR m (worst 2022 day -7.2 EUR m), spark book
+2.27 against 0.08 EUR m. A limit set on recent VaR alone would be about nine times too small for a
+2022-type market on the outright book and almost thirty times on the spread book.
 
 ## Data checks and reporting
 

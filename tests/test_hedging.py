@@ -84,3 +84,17 @@ def test_kalman_recovers_mean_reversion():
     p = curves.fit_two_factor(y)
     assert p.kappa == pytest.approx(kappa, rel=0.35)
     assert p.sigma_chi == pytest.approx(0.2, rel=0.25)
+
+
+def test_pnl_explain_adds_up():
+    h = _hours()
+    rng = np.random.default_rng(3)
+    exp = pd.Series(np.where(is_peak(h), 30.0, 10.0), index=h)
+    act = exp * (1 + rng.normal(0, 0.05, len(h)))
+    spot = pd.Series(rng.lognormal(4.4, 0.4, len(h)), index=h)
+    d = pd.Timestamp("2022-10-03")
+    y0, y1 = pd.Timestamp("2023-01-01"), pd.Timestamp("2023-12-31")
+    trades = [hedging.Trade(d, y0, y1, "base", 8), hedging.Trade(d, y0, y1, "peak", 15)]
+    r = hedging.settle(trades, np.array([85.0, 95.0]), act, spot, 90.0, expected=exp)
+    parts = r["pnl_level_eur_m"] + r["pnl_shape_eur_m"] + r["pnl_volume_eur_m"] + r["pnl_hedge_eur_m"]
+    assert parts == pytest.approx(r["pnl_eur_m"], abs=1e-9)
