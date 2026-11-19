@@ -154,6 +154,30 @@ against it (clean spark spread). 250-day window.
 2.27 against 0.08 EUR m. A limit set on recent VaR alone would be about nine times too small for a
 2022-type market on the outright book and almost thirty times on the spread book.
 
+## v0.2: retail tariff, churn, industrial procurement, limits and counterparty credit
+
+`src/ehr/retail.py`, `python scripts/run_retail.py`, results in `results/retail_*.csv`. Grid fee, sales cost, margin, demand elasticity, switching sensitivity and default probabilities are assumptions (parameters in the code); levies and taxes are the 2026 values of the transmission system operators and the statute (KWKG levy 0.446, offshore levy 0.941, levy for special grid use 1.559, electricity tax 2.05, concession fee 1.32 ct/kWh).
+
+**Retail tariff** for a household customer: the energy cost of delivery year 2026 is 84.7 EUR/MWh (load-weighted modelled forward of the first trading day of October 2025). With the assumptions above the gross price is 33.1 ct/kWh: energy 8.5, procurement overhead 0.3, sales cost 2.2, margin 1.0, grid fee 9.5, levies 2.9, electricity tax 2.1, concession fee 1.3 and VAT 5.3 ct/kWh. Energy is about 30% of the gross price; a move of 20 EUR/MWh in the procurement cost moves the tariff by 2.4 ct/kWh (7%).
+
+**Churn and elasticity** (structure only, no customer data). Annual churn is logistic in the gap to the market price (10% at zero gap), demand follows a constant elasticity, and the expected margin per customer is price minus cost times demand times the chance to keep the customer. The margin-maximising price falls from 25 to 14 ct/kWh when the switching sensitivity rises from 0.15 to 0.8 per ct (market price 12.5 ct against variable supply cost of 11.0 ct), and moves by at most 1.2 ct across elasticities of -0.1 to -0.4: churn matters more than demand elasticity for the price. The levels depend on the assumed base churn and sensitivity and are not estimates.
+
+**Industrial buyer** (100 GWh per year, three shifts, 3% hourly load noise; delivery 2021 to 2025; `results/retail_industrial_summary.csv`). Budget = the load-weighted forward on the first trading day of October before delivery.
+
+| Strategy | Mean cost, EUR/MWh | Std over the years | Worst overspend against budget, EUR m | Best, EUR m |
+|---|---|---|---|---|
+| Index (spot) | 120.2 | 66.2 | +8.8 | -19.3 |
+| One purchase of the year (budget price) | 134.3 | 94.8 | +0.1 | -0.1 |
+| 12 monthly tranches in the year before | 106.6 | 73.3 | +0.2 | -6.7 |
+| 70% tranches, 30% index | 110.7 | 51.7 | +1.2 | -10.1 |
+| 25% solar PPA (pay-as-produced) + tranches | 116.3 | 75.4 | +0.6 | -5.0 |
+
+A single purchase gives budget certainty (the cost equals the budget by construction) and the highest average cost, because it fixed 288 EUR/MWh for 2023 in October 2022 against a realised 96. Tranches smooth the entry price. Keeping 30% on index has the lowest year-to-year spread of the cost here. The PPA share lowers the cost in the years with high spot prices and adds the shape effect of solar hours; with five delivery years these are illustrations of mechanisms.
+
+**Limits** (`limit_report`). VaR limit of the supplier book = 1.25 times the 90% quantile of the daily filtered-historical VaR in the calm reference 2021 (2.36 million EUR); amber from 80% of the limit. Days in red per year: 7 (2021), 220 (2022), 0 (2023 to 2025); amber 18, 26 and 10 days in 2021 to 2023. A limit fixed in a calm year is breached on 85% of the days of the crisis year, so limits need a review rule and an escalation path, not only a level.
+
+**Counterparty credit** (unilateral CVA of a long 3-year baseload forward at 80 EUR/MWh, 1 MW, volatility 35% decaying towards delivery, loss given default 60%, one-year default probabilities of 0.03% (AA) to 3.5% (B) as assumptions). Peak expected exposure is 86.5 thousand EUR; CVA is 0.003 EUR/MWh for A, 0.008 for BBB, 0.037 for BB and 0.141 for B; a collateral threshold of 50 thousand EUR lowers it by about 30%. For investment grade the credit charge is small against the commodity risk; below it, it is a pricing item.
+
 ## Data checks and reporting
 
 `scripts/run_reporting.py` checks every input: hours per local day (23/24/25 with daylight saving),
