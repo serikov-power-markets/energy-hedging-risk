@@ -5,7 +5,7 @@ tolling agreement, a gas swing contract and a solar PPA worth, and how well do s
 Risk models hold up on energy positions? This repository answers these questions on open data
 (SMARD, EEX, Yahoo Finance TTF, DWD-based temperatures) with one consistent set of forward curves.
 
-**Status:** v0.1, research study on public data. Forward curves are **modelled**, not exchange
+**Status:** v0.3, research study on public data. Forward curves are **modelled**, not exchange
 settlement prices (see below), so levels that depend on forwards are illustrative; mechanisms,
 comparisons and backtests are the point.
 
@@ -18,6 +18,7 @@ comparisons and backtests are the point.
 | Hedging programme | Five procurement strategies, hourly settlement of hedges and open position, P&L and P&L explain, 2021-2025 backtest | `src/ehr/hedging.py`, `scripts/run_backtest.py` |
 | Structured products | Tolling (strip of Kirk spread options), gas swing (trinomial tree), solar pay-as-produced PPA, guarantees of origin | `src/ehr/products.py`, `src/ehr/goo.py`, `scripts/run_products.py` |
 | Market risk | VaR and ES by historical, EWMA, filtered historical and Monte Carlo t simulation; Kupiec, Christoffersen and Acerbi-Szekely backtests; stressed VaR | `src/ehr/risk.py`, `scripts/run_risk.py` |
+| Balancing group (v0.3) | Day-ahead forecast error of metered customers at reBAP, intraday correction at ID-AEP | `src/ehr/balancing.py`, `scripts/run_balancing.py` |
 | Data and reporting | Input data checks and anomaly detection, DuckDB position store, SQL KPIs and position reconciliation, Excel report, Power BI tables | `src/ehr/quality.py`, `sql/`, `scripts/run_reporting.py` |
 
 ## Data
@@ -30,6 +31,8 @@ comparisons and backtests are the point.
 | French guarantee of origin auctions, 2019-2026 | EEX (French state auctions) | GoO price |
 | Daily mean temperature, ten German cities, 1991-2026 | Open-Meteo historical weather API (ERA5-based) | volume risk |
 | Standard load profiles H0, G0 | BDEW via `demandlib` | expected customer volume |
+| reBAP and ID-AEP, quarter hours, 2025-2026 | netztransparenz.de WebAPI of the TSOs (free client credentials in `NTP_CLIENT_ID`, `NTP_CLIENT_SECRET`) | balancing-group settlement |
+| Grid load, load forecast and day-ahead price, quarter hours | SMARD, CC BY 4.0 | system forecast error |
 
 Raw files are downloaded into `data/raw/` on first use and not committed.
 
@@ -178,6 +181,60 @@ A single purchase gives budget certainty (the cost equals the budget by construc
 
 **Counterparty credit** (unilateral CVA of a long 3-year baseload forward at 80 EUR/MWh, 1 MW, volatility 35% decaying towards delivery, loss given default 60%, one-year default probabilities of 0.03% (AA) to 3.5% (B) as assumptions). Peak expected exposure is 86.5 thousand EUR; CVA is 0.003 EUR/MWh for A, 0.008 for BBB, 0.037 for BB and 0.141 for B; a collateral threshold of 50 thousand EUR lowers it by about 30%. For investment grade the credit charge is small against the commodity risk; below it, it is a pricing item.
 
+## v0.3: balancing group of metered industrial customers
+
+`src/ehr/balancing.py`, `src/ehr/imbalance_data.py`, `python scripts/run_balancing.py`, results in
+`results/balancing_*.csv`. A German two-page summary of procurement and balancing is in
+[docs/Beschaffungsportfolio_Bilanzkreis.pdf](docs/Beschaffungsportfolio_Bilanzkreis.pdf).
+
+A supplier buys its day-ahead load forecast for 100 GWh a year of metered industrial customers (the three-shift
+profile of v0.2) and settles every quarter-hour deviation at the German imbalance price (reBAP). Period: January
+2025 to September 2026, 61,240 quarter hours, real reBAP, intraday index ID-AEP, day-ahead prices and national
+load data. The forecast error is synthetic: standard deviation 3% (assumption), made of a share that follows the
+published national load forecast error (correlation `s`, assumption) and an independent AR(1) part (hourly
+autocorrelation 0.9, assumption). Standard-load-profile customers (the H0 and G0 book of v0.1) are outside this
+study: their deviations are settled with the distribution system operator (Mehr-/Mindermengen), not in the
+supplier's quarter-hour balance.
+
+The intraday correction trades the expected deviation 75 minutes ahead, estimated from the last known quarter hour
+with a coefficient fitted on the previous 28 days, at ID-AEP plus 1 EUR/MWh half spread. Mean over 200 random
+draws of the independent part:
+
+| Correlation with the national error | reBAP only, EUR/MWh | Worst 5% of days, kEUR | With intraday correction, EUR/MWh | Worst 5% of days, kEUR |
+|---|---|---|---|---|
+| 0 | 0.00 (-0.06 to 0.07) | 0.60 | 0.02 | 0.49 |
+| 0.5 | 0.14 (0.08 to 0.19) | 0.80 | 0.11 | 0.63 |
+| 1 | 0.27 | 1.02 | 0.19 | 0.78 |
+
+(brackets: 5th to 95th percentile of the draws)
+
+- **An error that is independent of the system costs almost nothing on average; an error that moves with the
+  national one does.** With a single imbalance price, short and long deviations offset in expectation unless they
+  coincide with the system's: reBAP minus day-ahead goes from -14 EUR/MWh in the lowest decile of the national
+  load forecast error to +17 in the highest. The correlation is weak (0.07) but enough: the fully correlated case
+  costs 0.27 EUR/MWh (27 thousand EUR a year), above all 84 placebo runs in which the same error series is moved
+  by whole weeks (mean 0.00, 95th percentile 0.06).
+- **The risk is there even when the mean cost is zero**, and it is concentrated: in the fully correlated case the
+  ten most expensive of 638 days carry 44% of the total cost.
+- **Intraday correction halves the open energy** (2.4% to 1.1% of consumption at correlation 0.5) and lowers the
+  mean of the worst 5% of days by about a fifth. It lowers the mean cost only if the errors are correlated with the
+  system; at correlation 0 it pays the spread for nothing.
+- **It depends on the spread and on fresh meter data.** At correlation 0.5 the mean saving disappears above about
+  2.4 EUR/MWh half spread (`results/balancing_sensitivity.csv`). Even a deviation known exactly in time and closed
+  at ID-AEP still costs 0.14 EUR/MWh in the fully correlated case: intraday prices already carry part of the shared
+  error.
+- All costs scale linearly with the assumed size of the error.
+
+![Balancing group](figures/balancing.png)
+
+Limits of v0.3: synthetic customer errors (no meter or forecast data of a supplier); the national load forecast
+error as the only system link (wind and solar errors, which move reBAP more, are priced in
+[de-weather-to-power](https://github.com/serikov-power-markets/de-weather-to-power)); ID-AEP is an index, not an
+executable quote; meter data within a quarter hour is assumed for the intraday correction; no collateral, fees or
+the balancing-group contract's penalties. The balancing duty itself (for example the obligation of
+BNetzA decision BK6-19-212 to close open positions before delivery) means a supplier may not leave positions open
+on purpose to earn the imbalance spread; the study measures the cost of unavoidable errors.
+
 ## Data checks and reporting
 
 `scripts/run_reporting.py` checks every input: hours per local day (23/24/25 with daylight saving),
@@ -207,6 +264,7 @@ python scripts/run_backtest.py
 python scripts/run_products.py
 python scripts/run_risk.py
 python scripts/run_reporting.py
+python scripts/run_balancing.py     # needs the netztransparenz credentials on the first run
 pytest
 ```
 

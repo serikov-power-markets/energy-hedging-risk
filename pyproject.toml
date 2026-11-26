@@ -1,6 +1,6 @@
 [project]
 name = "ehr"
-version = "0.2.0"
+version = "0.3.0"
 description = "Energy supplier hedging, structured product valuation and portfolio risk on open German market data"
 requires-python = ">=3.11"
 dependencies = ["pandas>=2.2,<3", "numpy>=2.0,<2.3", "scipy>=1.13", "statsmodels>=0.14", "duckdb>=1.1",

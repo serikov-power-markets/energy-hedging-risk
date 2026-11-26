@@ -1,0 +1,21 @@
+{
+  "quarter_hours": 61240,
+  "dropped_quarter_hours": 4,
+  "days": 638,
+  "annual_mwh": 100000.0,
+  "mean_da": 97.19888504245593,
+  "mean_rebap": 100.30282478772045,
+  "std_rebap": 147.17030804733696,
+  "mean_idaep": 99.80181450032659,
+  "std_spread_rebap": 132.79092072425718,
+  "std_spread_idaep": 91.9394480939275,
+  "corr_z_spread": 0.06844855343107877,
+  "system_case_eur_mwh": 0.27130282994178534,
+  "placebo_mean": 0.0036529761530621242,
+  "placebo_p05": -0.06104099689711348,
+  "placebo_p95": 0.06485008067615258,
+  "placebo_share_at_or_above": 0.0,
+  "placebo_runs": 84,
+  "acf_system_error_at_lead": 0.915885981387132,
+  "top10_days_share_of_system_cost": 0.44283709854969944
+}
